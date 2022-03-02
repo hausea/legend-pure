@@ -1,0 +1,10 @@
+Profile meta::legend::crud::Crud
+{
+  stereotypes: [
+    asdf
+  ];
+
+  tags: [
+    junk
+  ];
+}
