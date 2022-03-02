@@ -1,0 +1,143 @@
+import meta::pure::functions::meta::*;
+import meta::pure::functions::lang::*;
+import meta::pure::functions::collection::*;
+
+import meta::relational::metamodel::*;
+import meta::relational::metamodel::relation::*;
+
+import meta::pure::mapping::*;
+
+import meta::pure::runtime::*;
+
+import meta::legend::crud::metamodel::*;
+import meta::legend::crud::functions::*;
+
+//TODO: AJH: Temporary - need to have a first class InteractiveApplication construct
+function meta::legend::crud::functions::resolveInteractiveApplication(interactiveApplicationFunctionPath: String[1]): ResolvedInteractiveApplication[0..1]
+{
+  let generatorFunctionPackage = $interactiveApplicationFunctionPath->split('::')->fold({pathPart: String[1], package: PackageableElement[1] | 
+    let target = $package->cast(@Package).children->filter(c | $c.name == $pathPart);
+    if ($target->isEmpty(), | Nil, | $target->toOne());
+  }, ::);
+  let generatorFunctions = 
+    $generatorFunctionPackage->cast(@Package).children
+      ->filter(c | $c->instanceOf(meta::pure::metamodel::function::Function))
+      ->filter(f | $f->cast(@meta::pure::metamodel::function::Function<Any>).functionName == 'buildApp')
+      ->map(f | $f->cast(@meta::pure::metamodel::function::Function<{->InteractiveApplication[1]}>));
+
+  if ($generatorFunctions->isEmpty(),
+    | [],
+    | resolveInteractiveApplication($generatorFunctions->first()->toOne()->eval()));
+}
+
+function meta::legend::crud::functions::resolveInteractiveApplication(interactiveApplication: InteractiveApplication[1]): ResolvedInteractiveApplication[1]
+{
+  ^ResolvedInteractiveApplication(
+    interactiveApplication = $interactiveApplication,
+    queryClass = generateQueryClassForInteractiveApplication($interactiveApplication),
+    runtime = generateRuntimeForInteractiveApplication($interactiveApplication)
+  );
+}
+
+function <<access.private>> meta::legend::crud::functions::generateQueryClassForInteractiveApplication(interactiveApplication: InteractiveApplication[1]): Any[1]
+{
+  let queryClass = ^Class<Any>(name = 'Query', package = pathToPackage($interactiveApplication.package));
+  
+  let properties = createServiceDerivedQueryProperties($queryClass, $interactiveApplication);
+
+  $queryClass->mutateAdd('generalizations', ^Generalization(general = ^GenericType(rawType = Any), specific = $queryClass));
+  $queryClass->mutateAdd('qualifiedProperties', $properties);
+  
+  let queryClassInstance = $queryClass->dynamicNew([]);
+    // [^KeyValue(key = 'stringProperty', value = 'word')]);
+
+  $queryClassInstance;
+}
+
+function <<access.private>> meta::legend::crud::functions::createServiceDerivedQueryProperties(queryClass: Class<Any>[1], interactiveApplication: InteractiveApplication[1]): QualifiedProperty<Any>[*]
+{
+  $interactiveApplication.types->fold({type, properties| 
+    $type.services->map(service | 
+      let responsePropertyType = $type.baseClass;
+      let multiplicity = ZeroMany;
+      let servicePropertyTemplate = 
+        ^QualifiedProperty<Any>(
+          name = $service.name,
+          multiplicity = $multiplicity,
+          genericType = ^GenericType(rawType = $responsePropertyType),
+          owner = $queryClass,
+          //TODO: AJH: extract variables from the service function, and include the function as the expression sequence
+          // expressionSequence = ^SimpleFunctionExpression(
+          //   genericType = ^GenericType(rawType = $responsePropertyType),
+          //   multiplicity= ZeroMany,
+          //   importGroup = ^ImportGroup(), //TODO: AJH: what is this?
+          //   func = $service.query.expressionSequence,
+          //   parametersValues = []
+          // )
+          expressionSequence = $service.query.expressionSequence
+        );
+
+      let serviceProperty = ^$servicePropertyTemplate(
+        classifierGenericType = ^GenericType(
+          rawType = QualifiedProperty,
+          multiplicityArguments = $multiplicity,
+          typeArguments = [^GenericType(rawType = $queryClass), ^GenericType(rawType = $responsePropertyType)]
+        )
+      );
+      
+      $properties->add($serviceProperty);
+    )
+  }, [])
+}
+
+function <<access.private>> meta::legend::crud::functions::generateRuntimeForInteractiveApplication(interactiveApplication: InteractiveApplication[1]): Runtime[1]
+{
+  ^Runtime()
+}
+
+function <<access.private>> meta::legend::crud::functions::classesToStore(classes: Class<Any>[1..*], applicationName: String[1]): Database[1]
+{
+  let database = ^Database();
+  let schema = ^Schema(database = $database, name = upperSnakeCase($applicationName));
+  let tables = $classes->map(c | classToTable($c, $schema));
+  let joins = []; // do we even need joins?  well yes, yes we do... generate pk's?
+  ^$database(schemas = [^$schema(tables = $tables)], joins = $joins);
+}
+
+function <<access.private>> meta::legend::crud::functions::classToTable(class: Class<Any>[1], schema: Schema[1]): Table[1]
+{
+  let columns = $class.properties->map(p | propertyToColumn($p));
+  let primaryKeys = $class.properties->filter(p | $p.stereotypes->exists(s | $s == meta::legend::crud::Crud->stereotype('asdf'->toOne())))->map(p | propertyToColumn($p));
+  ^Table(name = upperSnakeCase($class.name->toOne()), columns = $columns, primaryKey = $primaryKeys, schema = $schema);
+}
+
+function <<access.private>> meta::legend::crud::functions::propertyToColumn(property: Property<Nil, Any|*>[1]): Column[1]
+{
+  ^Column(
+    name = upperSnakeCase($property.name->toOne()),
+    type = pureDataTypeToRelationalDataType($property.genericType.rawType->cast(@DataType)->toOne()));
+}
+
+function <<access.private>> meta::legend::crud::functions::pureDataTypeToRelationalDataType(type: DataType[1]): meta::relational::metamodel::datatype::DataType[1]
+{
+  $type->match([
+    i: PrimitiveType[1] | if ($i == String, | ^meta::relational::metamodel::datatype::Varchar(size = 64), |
+                            if ($i == Float, | ^meta::relational::metamodel::datatype::Double(), |
+                              if ($i == Boolean, | ^meta::relational::metamodel::datatype::SmallInt(), |
+                                if ($i == Integer, | ^meta::relational::metamodel::datatype::BigInt(), |
+                                  if ($i == Date, | ^meta::relational::metamodel::datatype::Timestamp(), |
+                                    ^meta::relational::metamodel::datatype::Varchar(size = 64)))))),
+    e: Enumeration<Any>[1] | ^meta::relational::metamodel::datatype::Varchar(size = 64),
+    a: Any[1] | ^meta::relational::metamodel::datatype::Float()
+  ]);
+}
+
+function <<access.private>> meta::legend::crud::functions::classesToMapping(classes: Class<Any>[1..*]): Mapping[1]
+{
+  ^Mapping()
+}
+
+function <<access.private>> meta::legend::crud::functions::upperSnakeCase(string: String[1]): String[1]
+{
+  $string->substring(0, 1)->toUpper() + $string->substring(1)->chunk(1)->map(s | if ($s->toUpper() == $s, | '_' + $s, | $s->toUpper()))->joinStrings()
+}

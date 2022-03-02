@@ -1,0 +1,19 @@
+import meta::legend::service::metamodel::*;
+
+Class
+{doc.doc = 'A Transaction represents a unit of work meant to be executed with appropriate locks in place.'}
+meta::pure::persistence::transactional::write::metamodel::Transaction extends PackageableElement
+{
+   {doc.doc = 'The time at which this transaction began.  The transactionTime will also represent the milestoning time for any object instances materialized during the execution of the transaction.'}
+   transactionTime: DateTime[1];
+
+   {doc.doc = 'The function '}
+   executionFunction: Function<{->Any[0..1]}>[1];
+}
+
+Class
+{doc.doc = 'A TransactionManager manages the lifecycle execution of a unit of work in the context of a logical transaction.'}
+meta::pure::persistence::transactional::write::metamodel::TransactionManager extends PackageableElement
+{
+  
+}

@@ -1,0 +1,73 @@
+import meta::pure::runtime::*;
+import meta::legend::crud::metamodel::*;
+
+Class
+{doc.doc = 'The representation of an online transaction processing application.'}
+meta::legend::crud::metamodel::InteractiveApplication
+{
+  package: String[1];
+  name: String[1];
+  storeConnection: InteractiveApplicationConnection[1];//meta::relational::runtime::DatabaseConnection[1];
+
+  globalAuthorization: InteractiveAuthorization[0..1];
+  types: InteractiveType[0..*];
+}
+
+Class
+{doc.doc = 'The connection information for the underlying store.'}
+meta::legend::crud::metamodel::InteractiveApplicationConnection
+{
+  //TODO: AJH: figure out how to represent the underlying connection
+  type: meta::relational::runtime::DatabaseType[1];
+}
+
+Class
+<<typemodifiers.abstract>>
+{doc.doc = 'An authorization implementation for an InteractiveApplication.'}
+meta::legend::crud::metamodel::InteractiveAuthorization
+{
+  {doc.doc = 'A function that takes the context of the InteractiveRequest, and determines if the action is authorized.'}
+  authorizationFunction: Function<{->Boolean[1]}>[1];
+}
+
+Class
+{doc.doc = 'A service container for a specific type.'}
+meta::legend::crud::metamodel::InteractiveType
+{
+  baseClass: Class<Any>[1];
+  graphScope: meta::pure::graphFetch::RootGraphFetchTree<Any>[1];
+  services: InteractiveService[0..*];
+}
+
+Class
+<<typemodifiers.abstract>>
+{doc.doc = 'An service definition that is interactive, in that it allows for both read and write.'}
+meta::legend::crud::metamodel::InteractiveService
+{
+  {doc.doc = 'The endpoint corresponding to this service.  Parameters are represented in brackets, e.g. /api/type/{id}'}
+  name: String[1];
+  authorization: InteractiveAuthorization[0..1];
+  query: LambdaFunction<Any>[1]; //LambdaFunction<{Any[*] -> Any[*]}>[1];
+}
+
+Class
+{doc.doc = 'A read-only interactive service.'}
+meta::legend::crud::metamodel::ReadInteractiveService extends InteractiveService
+{
+}
+
+Class
+{doc.doc = 'A create interactive service.'}
+meta::legend::crud::metamodel::CreateInteractiveService extends InteractiveService
+{
+  writeScope: meta::pure::graphFetch::RootGraphFetchTree<Any>[1];
+}
+
+Class
+{doc.doc = 'Generated application with everything.'}
+meta::legend::crud::metamodel::ResolvedInteractiveApplication
+{
+  interactiveApplication: InteractiveApplication[1];
+  queryClass: Any[1];
+  runtime: Runtime[1];
+}
