@@ -32,10 +32,14 @@ function meta::legend::crud::functions::resolveInteractiveApplication(interactiv
 
 function meta::legend::crud::functions::resolveInteractiveApplication(interactiveApplication: InteractiveApplication[1]): ResolvedInteractiveApplication[1]
 {
+  let store = interactiveApplicationToStore($interactiveApplication);
+  let mapping = interactiveApplicationToMapping($interactiveApplication, $store);
   ^ResolvedInteractiveApplication(
     interactiveApplication = $interactiveApplication,
     queryClass = generateQueryClassForInteractiveApplication($interactiveApplication),
-    runtime = generateRuntimeForInteractiveApplication($interactiveApplication)
+    store = $store,
+    mapping = $mapping,
+    runtime = generateRuntimeForInteractiveApplication($interactiveApplication, $store)
   );
 }
 
@@ -90,12 +94,37 @@ function <<access.private>> meta::legend::crud::functions::createServiceDerivedQ
   }, [])
 }
 
-function <<access.private>> meta::legend::crud::functions::generateRuntimeForInteractiveApplication(interactiveApplication: InteractiveApplication[1]): Runtime[1]
+function <<access.private>> meta::legend::crud::functions::generateRuntimeForInteractiveApplication(interactiveApplication: InteractiveApplication[1], element: Any[1]): Runtime[1]
 {
-  ^Runtime()
+  ^Runtime(
+    connections = [
+      //TODO: AJH: need to push to the InteractiveStore.. let it decide
+      ^meta::pure::alloy::connections::RelationalDatabaseConnection(
+        element = $element,        
+        type = meta::relational::runtime::DatabaseType.H2,
+        datasourceSpecification = ^meta::pure::alloy::connections::alloy::specification::LocalH2DatasourceSpecification(),
+        authenticationStrategy = ^meta::pure::alloy::connections::alloy::authentication::DefaultH2AuthenticationStrategy()
+      )
+    ]
+  );
 }
 
-function <<access.private>> meta::legend::crud::functions::classesToStore(classes: Class<Any>[1..*], applicationName: String[1]): Database[1]
+function <<access.private>> meta::legend::crud::functions::allClassesForInteractiveApplication(interactiveApplication: InteractiveApplication[1]): Class<Any>[*]
+{
+    $interactiveApplication.types->fold({type, classes |
+    $classes->add($type.baseClass);
+    //TODO: AJH: also traverse the graph fetches and extract ALL classes
+    //$type.graphScope
+    $classes;
+  }, []);
+}
+
+function <<access.private>> meta::legend::crud::functions::interactiveApplicationToStore(interactiveApplication: InteractiveApplication[1]): Database[1]
+{
+  classesToStore(allClassesForInteractiveApplication($interactiveApplication), $interactiveApplication.name)
+}
+
+function <<access.private>> meta::legend::crud::functions::classesToStore(classes: Class<Any>[0..*], applicationName: String[1]): Database[1]
 {
   let database = ^Database();
   let schema = ^Schema(database = $database, name = upperSnakeCase($applicationName));
@@ -132,7 +161,12 @@ function <<access.private>> meta::legend::crud::functions::pureDataTypeToRelatio
   ]);
 }
 
-function <<access.private>> meta::legend::crud::functions::classesToMapping(classes: Class<Any>[1..*]): Mapping[1]
+function <<access.private>> meta::legend::crud::functions::interactiveApplicationToMapping(interactiveApplication: InteractiveApplication[1], store: Database[1]): Mapping[1]
+{
+  classesToMapping(allClassesForInteractiveApplication($interactiveApplication), $store)
+}
+
+function <<access.private>> meta::legend::crud::functions::classesToMapping(classes: Class<Any>[0..*], store: Database[1]): Mapping[1]
 {
   ^Mapping()
 }

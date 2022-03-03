@@ -7,18 +7,21 @@ meta::legend::crud::metamodel::InteractiveApplication
 {
   package: String[1];
   name: String[1];
-  storeConnection: InteractiveApplicationConnection[1];//meta::relational::runtime::DatabaseConnection[1];
+  store: InteractiveApplicationStore[1];//meta::relational::runtime::DatabaseConnection[1];
 
   globalAuthorization: InteractiveAuthorization[0..1];
   types: InteractiveType[0..*];
 }
 
 Class
+<<typemodifiers.abstract>>
 {doc.doc = 'The connection information for the underlying store.'}
-meta::legend::crud::metamodel::InteractiveApplicationConnection
+meta::legend::crud::metamodel::InteractiveApplicationStore
 {
   //TODO: AJH: figure out how to represent the underlying connection
-  type: meta::relational::runtime::DatabaseType[1];
+  // type: meta::relational::runtime::DatabaseType[1];
+  // datasourceSpecification: meta::pure::alloy::connections::alloy::specification::DatasourceSpecification[1];
+  // authenticationStrategy: meta::pure::alloy::connections::alloy::authentication::AuthenticationStrategy[1];
 }
 
 Class
@@ -69,5 +72,8 @@ meta::legend::crud::metamodel::ResolvedInteractiveApplication
 {
   interactiveApplication: InteractiveApplication[1];
   queryClass: Any[1];
+
+  store: meta::pure::store::set::SetBasedStore[1];
+  mapping: meta::pure::mapping::Mapping[1];
   runtime: Runtime[1];
 }

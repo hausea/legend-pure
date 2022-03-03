@@ -35,8 +35,7 @@ function meta::legend::crud::tests::buildApp(): InteractiveApplication[1]
     ^InteractiveApplication(
     package = 'meta::demo::crud',
     name = 'demoApp',
-    storeConnection = ^InteractiveApplicationConnection(
-      type = meta::relational::runtime::DatabaseType.H2
+    store = ^InteractiveApplicationStore(
     ),
     
     globalAuthorization = [],
