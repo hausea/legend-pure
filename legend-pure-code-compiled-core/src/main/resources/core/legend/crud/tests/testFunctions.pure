@@ -35,9 +35,7 @@ function meta::legend::crud::tests::buildApp(): InteractiveApplication[1]
     ^InteractiveApplication(
     package = 'meta::legend::crud::tests',
     name = 'demoApp',
-    store = ^InteractiveApplicationStore(
-      connection = {store: meta::pure::store::Store[1]|^meta::pure::runtime::Connection(element = $store)}->cast(@Function<{meta::pure::store::Store[1]->Connection[1]}>)
-    ),
+    store = meta::legend::crud::functions::defaultStore(),
     
     globalAuthorization = [],
     types = [
@@ -46,6 +44,21 @@ function meta::legend::crud::tests::buildApp(): InteractiveApplication[1]
         graphScope = ^RootGraphFetchTree<Firm>(
           class = Firm
         ),
+        configuration = [
+          ^InteractiveTypePrimaryKeysConfiguration<Firm>(
+            primaryKeys = [
+              ^InteractiveTypePrimaryKeysPrimaryKeyConfiguration<Firm, Integer>(
+                property = Firm->propertyByName('id')->toOne(),
+                strategy = PrimaryKeyStrategy.NONE
+              )
+            ]
+          )
+          // ,
+          // ^InteractiveTypeStringPropertyConfiguration<Firm>(
+          //   property = Firm->propertyByName('name')->toOne()->cast(@Property<Firm, String|0..1>),
+          //   maxLength = 64
+          // )
+        ],
         services = [
           ^InteractiveService(
             name = 'allFirms',

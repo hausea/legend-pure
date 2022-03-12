@@ -17,6 +17,7 @@
 
 import meta::legend::crud::functions::*;
 import meta::legend::crud::metamodel::*;
+import meta::legend::relational::crud::metamodel::*;
 import meta::pure::functions::collection::*;
 import meta::pure::functions::meta::*;
 import meta::pure::runtime::*;
@@ -24,12 +25,12 @@ import meta::pure::graphFetch::*;
 import meta::relational::metamodel::execute::*;
 import meta::pure::mapping::*;
 
-import meta::relational::crud::tests::*;
+import meta::legend::relational::crud::tests::*;
 
-function <<test.Test>> meta::relational::crud::tests::testResolvedApplicationFromPath():Any[*]
+function <<test.Test>> meta::legend::relational::crud::tests::testResolvedApplicationFromPath():Any[*]
 {
-  let resolvedInteractiveApplication = resolveInteractiveApplication('meta::relational::crud::tests')->toOne();
-  meta::relational::crud::tests::generateDatabase($resolvedInteractiveApplication);
+  let resolvedInteractiveApplication = resolveInteractiveApplication('meta::legend::relational::crud::tests')->toOne();
+  meta::legend::relational::crud::tests::generateDatabase($resolvedInteractiveApplication);
 
   let allFirms = $resolvedInteractiveApplication.queryClass.qualifiedProperties->filter(qp | $qp.name == 'allFirms');
   
@@ -45,7 +46,7 @@ function <<test.Test>> meta::relational::crud::tests::testResolvedApplicationFro
   assertEquals(1, $result.values->size());
 }
 
-function meta::relational::crud::tests::generateDatabase(resolvedInteractiveApplication: ResolvedInteractiveApplication[1]):Any[*]
+function meta::legend::relational::crud::tests::generateDatabase(resolvedInteractiveApplication: ResolvedInteractiveApplication[1]):Any[*]
 {
   let connection = $resolvedInteractiveApplication.runtime.connectionByElement($resolvedInteractiveApplication.store)->cast(@meta::relational::runtime::DatabaseConnection);
   executeInDb('DROP TABLE IF EXISTS FIRM;', $connection, 5000, 5000);
@@ -53,13 +54,18 @@ function meta::relational::crud::tests::generateDatabase(resolvedInteractiveAppl
   executeInDb('INSERT INTO FIRM (ID, NAME) VALUES (1, \'GS\');', $connection, 5000, 5000);
 }
 
-function meta::relational::crud::tests::buildApp(): InteractiveApplication[1]
+function meta::legend::relational::crud::tests::buildApp(): InteractiveApplication[1]
 {
   ^InteractiveApplication(
-    package = 'meta::relational::crud::tests',
+    package = 'meta::legend::relational::crud::tests',
     name = 'demoApp',
-    store = ^InteractiveApplicationStore(
-      connection = {store: meta::pure::store::Store[1]|^meta::relational::runtime::TestDatabaseConnection(element = $store, type = meta::relational::runtime::DatabaseType.H2)}->cast(@Function<{meta::pure::store::Store[1]->Connection[1]}>)
+    store = meta::legend::relational::crud::functions::defaultRelationalStore({
+      store: meta::pure::store::Store[1]|
+        ^meta::relational::runtime::TestDatabaseConnection(
+          element = $store,
+          type = meta::relational::runtime::DatabaseType.H2
+        )
+      }
     ),
     
     globalAuthorization = [],
@@ -69,6 +75,21 @@ function meta::relational::crud::tests::buildApp(): InteractiveApplication[1]
         graphScope = ^RootGraphFetchTree<Firm>(
           class = Firm
         ),
+        configuration = [
+          ^InteractiveTypePrimaryKeysConfiguration<Firm>(
+            primaryKeys = [
+              ^InteractiveTypePrimaryKeysPrimaryKeyConfiguration<Firm, Integer>(
+                property = Firm->propertyByName('id')->toOne(),
+                strategy = PrimaryKeyStrategy.NONE
+              )
+            ]
+          )
+          // ,
+          // ^InteractiveTypeStringPropertyConfiguration<Firm>(
+          //   property = Firm->propertyByName('name')->toOne(),
+          //   maxLength = 64
+          // )
+        ],
         services = [
           ^InteractiveService(
             name = 'allFirms',
@@ -86,7 +107,7 @@ function meta::relational::crud::tests::buildApp(): InteractiveApplication[1]
   );
 }
 
-Class meta::relational::crud::tests::Firm
+Class meta::legend::relational::crud::tests::Firm
 {
   id: Integer[1];
   name: String[0..1];

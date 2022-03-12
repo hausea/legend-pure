@@ -14,15 +14,12 @@ meta::legend::crud::metamodel::InteractiveApplication
 }
 
 Class
-<<typemodifiers.abstract>>
-{doc.doc = 'The connection information for the underlying store.'}
+{doc.doc = 'The type of store to allocate and generate for the application.'}
 meta::legend::crud::metamodel::InteractiveApplicationStore
 {
+  generateStore: Function<{Class<Any>[0..*], InteractiveApplication[1] -> meta::pure::store::Store[1]}>[1];
+  generateMapping: Function<{Class<Any>[0..*], meta::pure::store::Store[1], InteractiveApplication[1] -> meta::pure::mapping::Mapping[1]}>[1];
   connection: Function<{meta::pure::store::Store[1] -> meta::pure::runtime::Connection[1]}>[1];
-  //TODO: AJH: figure out how to represent the underlying connection
-  // type: meta::relational::runtime::DatabaseType[1];
-  // datasourceSpecification: meta::pure::alloy::connections::alloy::specification::DatasourceSpecification[1];
-  // authenticationStrategy: meta::pure::alloy::connections::alloy::authentication::AuthenticationStrategy[1];
 }
 
 Class
@@ -40,7 +37,61 @@ meta::legend::crud::metamodel::InteractiveType
 {
   baseClass: Class<Any>[1];
   graphScope: meta::pure::graphFetch::RootGraphFetchTree<Any>[1];
+  configuration: InteractiveTypeConfiguration[0..*];
   services: InteractiveService[0..*];
+}
+
+Class
+<<typemodifiers.abstract>>
+{doc.doc = 'Configuration specification for Interactive Type and it\'s properties.'}
+meta::legend::crud::metamodel::InteractiveTypeConfiguration
+{
+}
+
+Class
+<<typemodifiers.abstract>>
+{doc.doc = 'Type level specification configuration.'}
+meta::legend::crud::metamodel::InteractiveTypeTypeConfiguration extends InteractiveTypeConfiguration
+{
+}
+
+Class
+<<typemodifiers.abstract>>
+{doc.doc = 'Type level specification configuration.'}
+meta::legend::crud::metamodel::InteractiveTypePrimaryKeysConfiguration<T> extends InteractiveTypeTypeConfiguration
+{
+  primaryKeys: InteractiveTypePrimaryKeysPrimaryKeyConfiguration<T, Any>[0..*];
+}
+
+Class
+<<typemodifiers.abstract>>
+{doc.doc = 'Type level specification configuration.'}
+meta::legend::crud::metamodel::InteractiveTypePrimaryKeysPrimaryKeyConfiguration<T, V> extends InteractiveTypeTypeConfiguration
+{
+  property: Property<T, V|1>[1];
+  strategy: PrimaryKeyStrategy[1];
+}
+
+Enum
+meta::legend::crud::metamodel::PrimaryKeyStrategy
+{
+  NONE, SYNTHETIC, MAX
+}
+
+Class
+<<typemodifiers.abstract>>
+{doc.doc = 'Property level specification configuration'}
+meta::legend::crud::metamodel::InteractiveTypePropertyConfiguration<T, V> extends InteractiveTypeConfiguration
+{
+  property: Property<T, V|Any>[1];
+}
+
+Class
+{doc.doc = 'String property specification configuration'}
+meta::legend::crud::metamodel::InteractiveTypeStringPropertyConfiguration<T> extends InteractiveTypePropertyConfiguration<T, String>
+{
+  minLength: Integer[0..1];
+  maxLength: Integer[0..1];
 }
 
 Class
@@ -74,7 +125,7 @@ meta::legend::crud::metamodel::ResolvedInteractiveApplication
   interactiveApplication: InteractiveApplication[1];
   queryClass: Class<Any>[1];
 
-  store: meta::pure::store::set::SetBasedStore[1];
+  store: meta::pure::store::Store[1];
   mapping: meta::pure::mapping::Mapping[1];
   runtime: Runtime[1];
 }
