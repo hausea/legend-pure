@@ -55,7 +55,7 @@ function <<access.private>> meta::legend::relational::crud::functions::classToTa
   $table;
 }
 
-function <<access.private>> meta::legend::relational::crud::functions::propertyToColumn(property: Property<Nil, Any|*>[1], table: Table[1], propertyConfigurations: InteractiveTypePropertyConfiguration<Any, Any>[0..*]): Column[1]
+function <<access.private>> meta::legend::relational::crud::functions::propertyToColumn(property: Property<Nil, Any|*>[1], table: Table[1], propertyConfigurations: InteractiveTypePropertyConfiguration[0..*]): Column[1]
 {
   ^Column(
     name = upperSnakeCase($property.name->toOne()),
@@ -64,7 +64,7 @@ function <<access.private>> meta::legend::relational::crud::functions::propertyT
   );
 }
 
-function <<access.private>> meta::legend::relational::crud::functions::pureDataTypeToRelationalDataType(type: DataType[1], propertyConfigurations: InteractiveTypePropertyConfiguration<Any, Any>[0..*]): meta::relational::metamodel::datatype::DataType[1]
+function <<access.private>> meta::legend::relational::crud::functions::pureDataTypeToRelationalDataType(type: DataType[1], propertyConfigurations: InteractiveTypePropertyConfiguration[0..*]): meta::relational::metamodel::datatype::DataType[1]
 {
   $type->match([
     i: PrimitiveType[1] | if ($i == String, | ^meta::relational::metamodel::datatype::Varchar(size = stringSize($propertyConfigurations)), |
@@ -78,11 +78,11 @@ function <<access.private>> meta::legend::relational::crud::functions::pureDataT
   ]);
 }
 
-function <<access.private>> meta::legend::relational::crud::functions::stringSize(propertyConfigurations: InteractiveTypePropertyConfiguration<Any, Any>[0..*]): Integer[1]
+function <<access.private>> meta::legend::relational::crud::functions::stringSize(propertyConfigurations: InteractiveTypePropertyConfiguration[0..*]): Integer[1]
 {
   let potentialMaxLength = $propertyConfigurations
     ->filter(pc | $pc->instanceOf(InteractiveTypeStringPropertyConfiguration))
-    ->map(pc | $pc->cast(@InteractiveTypeStringPropertyConfiguration<Any>).maxLength)
+    ->map(pc | $pc->cast(@InteractiveTypeStringPropertyConfiguration).maxLength)
     ->filter(pc | $pc->isNotEmpty());
   if($potentialMaxLength->isEmpty(),|64,|$potentialMaxLength->first()->toOne());
 }

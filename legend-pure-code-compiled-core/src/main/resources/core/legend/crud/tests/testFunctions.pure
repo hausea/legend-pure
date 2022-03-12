@@ -45,19 +45,18 @@ function meta::legend::crud::tests::buildApp(): InteractiveApplication[1]
           class = Firm
         ),
         configuration = [
-          ^InteractiveTypePrimaryKeysConfiguration<Firm>(
+          ^InteractiveTypePrimaryKeysConfiguration(
             primaryKeys = [
-              ^InteractiveTypePrimaryKeysPrimaryKeyConfiguration<Firm, Integer>(
-                property = Firm->propertyByName('id')->toOne(),
+              ^InteractiveTypePrimaryKeysPrimaryKeyConfiguration(
+                property = Firm->propertyByName('id')->toOne()->cast(@Property<Nil, Any|1>),
                 strategy = PrimaryKeyStrategy.NONE
               )
             ]
+          ),
+          ^InteractiveTypeStringPropertyConfiguration(
+            property = Firm->propertyByName('name')->toOne()->cast(@Property<Nil, Any|*>),
+            maxLength = 256
           )
-          // ,
-          // ^InteractiveTypeStringPropertyConfiguration<Firm>(
-          //   property = Firm->propertyByName('name')->toOne()->cast(@Property<Firm, String|0..1>),
-          //   maxLength = 64
-          // )
         ],
         services = [
           ^InteractiveService(

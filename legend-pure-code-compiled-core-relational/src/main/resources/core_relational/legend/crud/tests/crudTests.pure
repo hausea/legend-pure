@@ -50,7 +50,7 @@ function meta::legend::relational::crud::tests::generateDatabase(resolvedInterac
 {
   let connection = $resolvedInteractiveApplication.runtime.connectionByElement($resolvedInteractiveApplication.store)->cast(@meta::relational::runtime::DatabaseConnection);
   executeInDb('DROP TABLE IF EXISTS FIRM;', $connection, 5000, 5000);
-  executeInDb('CREATE TABLE FIRM (ID INT PRIMARY KEY, NAME VARCHAR(64));', $connection, 5000, 5000);
+  executeInDb('CREATE TABLE FIRM (ID INT PRIMARY KEY, NAME VARCHAR(256));', $connection, 5000, 5000);
   executeInDb('INSERT INTO FIRM (ID, NAME) VALUES (1, \'GS\');', $connection, 5000, 5000);
 }
 
@@ -76,19 +76,18 @@ function meta::legend::relational::crud::tests::buildApp(): InteractiveApplicati
           class = Firm
         ),
         configuration = [
-          ^InteractiveTypePrimaryKeysConfiguration<Firm>(
+          ^InteractiveTypePrimaryKeysConfiguration(
             primaryKeys = [
-              ^InteractiveTypePrimaryKeysPrimaryKeyConfiguration<Firm, Integer>(
-                property = Firm->propertyByName('id')->toOne(),
+              ^InteractiveTypePrimaryKeysPrimaryKeyConfiguration(
+                property = Firm->propertyByName('id')->toOne()->cast(@Property<Nil, Any|1>),
                 strategy = PrimaryKeyStrategy.NONE
               )
             ]
+          ),
+          ^InteractiveTypeStringPropertyConfiguration(
+            property = Firm->propertyByName('name')->toOne()->cast(@Property<Nil, Any|*>),
+            maxLength = 256
           )
-          // ,
-          // ^InteractiveTypeStringPropertyConfiguration<Firm>(
-          //   property = Firm->propertyByName('name')->toOne(),
-          //   maxLength = 64
-          // )
         ],
         services = [
           ^InteractiveService(
