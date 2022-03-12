@@ -11,6 +11,11 @@ meta::legend::crud::metamodel::InteractiveApplication
 
   globalAuthorization: InteractiveAuthorization[0..1];
   types: InteractiveType[0..*];
+
+  typeForClass(class: Class<Any>[1])
+  {
+    $this.types->filter(type | $type.baseClass == $class)
+  }: InteractiveType[0..*];
 }
 
 Class
@@ -39,6 +44,25 @@ meta::legend::crud::metamodel::InteractiveType
   graphScope: meta::pure::graphFetch::RootGraphFetchTree<Any>[1];
   configuration: InteractiveTypeConfiguration[0..*];
   services: InteractiveService[0..*];
+
+  primaryKeys()
+  {
+    let primaryKeyConfiguration = $this.configuration->filter(config | $config->instanceOf(InteractiveTypePrimaryKeysConfiguration))->map(config | $config->cast(@InteractiveTypePrimaryKeysConfiguration<Any>));
+    if($primaryKeyConfiguration->isEmpty(), |[],|$primaryKeyConfiguration->toOne().primaryKeys);
+  }: InteractiveTypePrimaryKeysPrimaryKeyConfiguration<Any, Any>[0..*];
+
+  primaryKeysByPropertyName()
+  {
+    $this.primaryKeys()->map(pk | pair($pk.property.name->toOne(), $pk))->newMap()
+  }: Map<String, InteractiveTypePrimaryKeysPrimaryKeyConfiguration<Any, Any>>[1];
+
+  configurationsForProperty(property: Property<Any, Any|Any>[1])
+  {
+    $this.configuration
+      ->filter(config | $config->instanceOf(InteractiveTypePropertyConfiguration))
+      ->map(config | $config->cast(@InteractiveTypePropertyConfiguration<Any, Any>))
+      ->filter(config | $config.property.name == $property.name)
+  }: InteractiveTypePropertyConfiguration<Any, Any>[0..*];
 }
 
 Class

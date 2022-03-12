@@ -23,7 +23,7 @@ function <<access.private>> meta::legend::relational::crud::functions::classesTo
     includes = []
   );
   let schema = ^Schema(database = $database, name = 'default');//upperSnakeCase($interactiveApplication.name));
-  let tables = $classes->map(c | classToTable($c, $schema));
+  let tables = $classes->map(c | classToTable($c, $schema, $interactiveApplication));
   let joins = []; // do we even need joins?  well yes, yes we do... generate pk's?
   ^$database(
     schemas = [
@@ -35,33 +35,39 @@ function <<access.private>> meta::legend::relational::crud::functions::classesTo
     joins = $joins);
 }
 
-function <<access.private>> meta::legend::relational::crud::functions::classToTable(class: Class<Any>[1], schema: Schema[1]): Table[1]
+function <<access.private>> meta::legend::relational::crud::functions::classToTable(class: Class<Any>[1], schema: Schema[1], interactiveApplication: InteractiveApplication[1]): Table[1]
 {
   let table = ^Table(
     name = upperSnakeCase($class.name->toOne()),
     schema = $schema
   );
-  let columns = $class.properties->map(p | propertyToColumn($p, $table));
-  let primaryKeys = $columns->filter(c | $c.name == 'ID');
+
+  let interactiveType = $interactiveApplication.typeForClass($class);
+
+  let columns = $class.properties->map(p | propertyToColumn($p, $table, $interactiveType.configurationsForProperty($p)));
+
+  let pkNames = $interactiveType->toOne().primaryKeysByPropertyName()->keys()->map(key | upperSnakeCase($key));
+  let primaryKeys = $columns->filter(c | $c.name->in($pkNames));
+
   $table->mutateAdd('columns', $columns);
   $table->mutateAdd('setColumns', $columns);
   $table->mutateAdd('primaryKey', $primaryKeys);
   $table;
 }
 
-function <<access.private>> meta::legend::relational::crud::functions::propertyToColumn(property: Property<Nil, Any|*>[1], table: Table[1]): Column[1]
+function <<access.private>> meta::legend::relational::crud::functions::propertyToColumn(property: Property<Nil, Any|*>[1], table: Table[1], propertyConfigurations: InteractiveTypePropertyConfiguration<Any, Any>[0..*]): Column[1]
 {
   ^Column(
     name = upperSnakeCase($property.name->toOne()),
-    type = pureDataTypeToRelationalDataType($property.genericType.rawType->cast(@DataType)->toOne()),
+    type = pureDataTypeToRelationalDataType($property.genericType.rawType->cast(@DataType)->toOne(), $propertyConfigurations),
     owner = $table
   );
 }
 
-function <<access.private>> meta::legend::relational::crud::functions::pureDataTypeToRelationalDataType(type: DataType[1]): meta::relational::metamodel::datatype::DataType[1]
+function <<access.private>> meta::legend::relational::crud::functions::pureDataTypeToRelationalDataType(type: DataType[1], propertyConfigurations: InteractiveTypePropertyConfiguration<Any, Any>[0..*]): meta::relational::metamodel::datatype::DataType[1]
 {
   $type->match([
-    i: PrimitiveType[1] | if ($i == String, | ^meta::relational::metamodel::datatype::Varchar(size = 64), |
+    i: PrimitiveType[1] | if ($i == String, | ^meta::relational::metamodel::datatype::Varchar(size = stringSize($propertyConfigurations)), |
                             if ($i == Float, | ^meta::relational::metamodel::datatype::Double(), |
                               if ($i == Boolean, | ^meta::relational::metamodel::datatype::SmallInt(), |
                                 if ($i == Integer, | ^meta::relational::metamodel::datatype::BigInt(), |
@@ -70,6 +76,15 @@ function <<access.private>> meta::legend::relational::crud::functions::pureDataT
     e: Enumeration<Any>[1] | ^meta::relational::metamodel::datatype::Varchar(size = 64),
     a: Any[1] | ^meta::relational::metamodel::datatype::Float()
   ]);
+}
+
+function <<access.private>> meta::legend::relational::crud::functions::stringSize(propertyConfigurations: InteractiveTypePropertyConfiguration<Any, Any>[0..*]): Integer[1]
+{
+  let potentialMaxLength = $propertyConfigurations
+    ->filter(pc | $pc->instanceOf(InteractiveTypeStringPropertyConfiguration))
+    ->map(pc | $pc->cast(@InteractiveTypeStringPropertyConfiguration<Any>).maxLength)
+    ->filter(pc | $pc->isNotEmpty());
+  if($potentialMaxLength->isEmpty(),|64,|$potentialMaxLength->first()->toOne());
 }
 
 function <<access.private>> meta::legend::relational::crud::functions::classesToMapping(classes: Class<Any>[0..*], store: Database[1], interactiveApplication: InteractiveApplication[1]): Mapping[1]
@@ -137,8 +152,10 @@ function <<access.private>> meta::legend::relational::crud::functions::classToCl
   );
 
   $classMapping->mutateAdd('propertyMappings', $propertyMappings);
-  //TODO: AJH: need to better handle pk's and fk's
-  $classMapping->mutateAdd('primaryKey', $propertyMappings->map(pm | $pm.relationalOperationElement->cast(@TableAliasColumn))->filter(tac | $tac.column.name == 'ID'));
+  
+  let pkNames = $interactiveApplication.typeForClass($class)->toOne().primaryKeysByPropertyName()->keys();
+  let primaryKeys = $propertyMappings->filter(pm | $pm.property.name->in($pkNames))->map(pm | $pm.relationalOperationElement->cast(@TableAliasColumn));
+  $classMapping->mutateAdd('primaryKey', $primaryKeys);
 
   $classMapping;
 }
