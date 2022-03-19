@@ -17,12 +17,12 @@ import meta::legend::relational::crud::functions::*;
 function <<access.private>> meta::legend::relational::crud::functions::classesToStore(classes: Class<Any>[0..*], interactiveApplication: InteractiveApplication[1]): Database[1]
 {
   let database = ^Database(
-    name = $interactiveApplication.name + 'Database',
-    package = pathToPackage($interactiveApplication.package),
+    name = $interactiveApplication.applicationName + 'Database',
+    package = pathToPackage($interactiveApplication.applicationPackage),
     filters = [],
     includes = []
   );
-  let schema = ^Schema(database = $database, name = 'default');//upperSnakeCase($interactiveApplication.name));
+  let schema = ^Schema(database = $database, name = 'default');//upperSnakeCase($interactiveApplication.applicationName));
   let tables = $classes->map(c | classToTable($c, $schema, $interactiveApplication));
   let joins = []; // do we even need joins?  well yes, yes we do... generate pk's?
   ^$database(
@@ -90,8 +90,8 @@ function <<access.private>> meta::legend::relational::crud::functions::stringSiz
 function <<access.private>> meta::legend::relational::crud::functions::classesToMapping(classes: Class<Any>[0..*], store: Database[1], interactiveApplication: InteractiveApplication[1]): Mapping[1]
 {
   let mapping = ^Mapping(
-    name = $interactiveApplication.name + 'Mapping',
-    package = pathToPackage($interactiveApplication.package)
+    name = $interactiveApplication.applicationName + 'Mapping',
+    package = pathToPackage($interactiveApplication.applicationPackage)
     
     // includes : MappingInclude[*];
     // classMappings : SetImplementation[*];

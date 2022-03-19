@@ -45,7 +45,7 @@ function meta::legend::crud::functions::resolveInteractiveApplication(interactiv
 
 function <<access.private>> meta::legend::crud::functions::generateQueryClassForInteractiveApplication(interactiveApplication: InteractiveApplication[1]): Class<Any>[1]
 {
-  let queryClass = ^Class<Any>(name = 'Query', package = pathToPackage($interactiveApplication.package));
+  let queryClass = ^Class<Any>(name = $interactiveApplication.applicationName, package = pathToPackage($interactiveApplication.applicationPackage));
   
   let properties = createServiceDerivedQueryProperties($queryClass, $interactiveApplication);
 

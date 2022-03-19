@@ -57,8 +57,8 @@ function meta::legend::relational::crud::tests::generateDatabase(resolvedInterac
 function meta::legend::relational::crud::tests::buildApp(): InteractiveApplication[1]
 {
   ^InteractiveApplication(
-    package = 'meta::legend::relational::crud::tests',
-    name = 'demoApp',
+    applicationPackage = 'meta::legend::relational::crud::tests',
+    applicationName = 'demoApp',
     store = meta::legend::relational::crud::functions::defaultRelationalStore({
       store: meta::pure::store::Store[1]|
         ^meta::relational::runtime::TestDatabaseConnection(

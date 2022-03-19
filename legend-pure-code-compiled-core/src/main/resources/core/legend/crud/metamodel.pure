@@ -3,10 +3,10 @@ import meta::legend::crud::metamodel::*;
 
 Class
 {doc.doc = 'The representation of an online transaction processing application.'}
-meta::legend::crud::metamodel::InteractiveApplication
+meta::legend::crud::metamodel::InteractiveApplication extends PackageableElement
 {
-  package: String[1];
-  name: String[1];
+  applicationPackage: String[1];
+  applicationName: String[1];
   store: InteractiveApplicationStore[1];
 
   globalAuthorization: InteractiveAuthorization[0..1];
@@ -90,7 +90,7 @@ meta::legend::crud::metamodel::InteractiveTypePrimaryKeysConfiguration extends I
 Class
 <<typemodifiers.abstract>>
 {doc.doc = 'Type level specification configuration.'}
-meta::legend::crud::metamodel::InteractiveTypePrimaryKeysPrimaryKeyConfiguration extends InteractiveTypeTypeConfiguration
+meta::legend::crud::metamodel::InteractiveTypePrimaryKeysPrimaryKeyConfiguration
 {
   property: Property<Nil, Any|1>[1];
   strategy: PrimaryKeyStrategy[1];
